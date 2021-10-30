@@ -9,7 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Comment, Group, Post
+from ..models import Comment, Follow, Group, Post
 
 User = get_user_model()
 
@@ -175,11 +175,9 @@ class PostsPagesTest(TestCase):
     def test_comment_authorized(self):
         """Проверка работы коммента авторизованным пользователем"""
         self.post_url = reverse('posts:post_detail',
-                                kwargs={'post_id': self.post.id}
-                                )
+                                kwargs={'post_id': self.post.id})
         self.comment_url = reverse(
-            'posts:add_comment', kwargs={'post_id': self.post.id}
-        )
+            'posts:add_comment', kwargs={'post_id': self.post.id})
         self.authorized_client.post(self.comment_url, {'text': 'Тест Коммент'})
         response = self.authorized_client.get(self.post_url)
         self.assertContains(response, 'Тест Коммент')
@@ -287,22 +285,31 @@ class FollowViewTest(TestCase):
         self.following_auth = Client()
         self.following_auth.force_login(self.following)
 
-    def test_follow_unfollow_user(self):
-        """Проверка работы подписки и фильтра постов по подписке"""
-        response = self.follower_auth.get(reverse('posts:follow_index'))
-        object_0 = response.context.get('page_obj').object_list
-        self.assertEqual((len(object_0)), 0)
+    def test_follow(self):
+        """Проверка работы подписки"""
+        self.follower_auth.get(reverse('posts:profile_follow',
+                               kwargs={'username': self.following.username}))
+        follow = Follow.objects.filter(
+            user=self.follower, author=self.following)
+        self.assertTrue(follow.exists())
+
+    def test_unfollow(self):
+        """Проверка работы отписки"""
+        self.follower_auth.get(reverse('posts:profile_unfollow',
+                               kwargs={'username': self.following.username}))
+        follow = Follow.objects.filter(
+            user=self.follower, author=self.following)
+        self.assertFalse(follow.exists())
+
+    def test_index_follow(self):
+        """Проверка работы ленты по подписке"""
         self.follower_auth.get(reverse('posts:profile_follow',
                                kwargs={'username': self.following.username}))
         response = self.follower_auth.get(reverse('posts:follow_index'))
         self.assertEqual((len(response.context.get('page_obj'))), 1)
-        object_0 = response.context.get('page_obj').object_list[0]
-        self.assertEqual(object_0.text, self.post.text)
-        self.assertEqual(object_0.author, self.post.author)
-        self.assertEqual(object_0.pub_date, self.post.pub_date)
-        """Проверка работы отписки и отсутствие лишних постов"""
-        self.follower_auth.get(reverse('posts:profile_unfollow',
-                               kwargs={'username': self.following.username}))
+
+    def test_index_unfollow(self):
+        """Проверка работы ленты без подписки"""
         response = self.follower_auth.get(reverse('posts:follow_index'))
         object_0 = response.context.get('page_obj').object_list
         self.assertEqual((len(object_0)), 0)

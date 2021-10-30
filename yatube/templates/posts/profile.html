@@ -5,19 +5,21 @@
   <div class="mb-5">
     <h1>Все посты пользователя {{ profile.username }}</h1>
     <h3>Всего постов: {{ posts_count }}</h3>
-    {% if request.user != profile %}
-      {% if following %}
-        <a class="btn btn-lg btn-light"
-          href="{% url 'posts:profile_unfollow' profile.username %}" role="button">
-          Отписаться
-        </a>
-      {% else %}
-        <a class="btn btn-lg btn-primary"
-          href="{% url 'posts:profile_follow' profile.username %}" role="button">
-          Подписаться
-        </a>
+    {% if user.is_authenticated %}
+      {% if request.user != profile %}
+        {% if following %}
+          <a class="btn btn-lg btn-light"
+            href="{% url 'posts:profile_unfollow' profile.username %}" role="button">
+            Отписаться
+          </a>
+        {% else %}
+          <a class="btn btn-lg btn-primary"
+            href="{% url 'posts:profile_follow' profile.username %}" role="button">
+            Подписаться
+          </a>
+        {% endif %}
+      {% endif %}
     {% endif %}
-  {% endif %}
   </div>
 {% endblock %}
 {% block content %}

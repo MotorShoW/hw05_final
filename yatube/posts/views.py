@@ -62,7 +62,7 @@ def post_detail(request, post_id):
     user_posts = post.author.posts.all()
     posts_count = user_posts.count()
     post_title = post.text[:30]
-    form = CommentForm(request.POST or None)
+    form = CommentForm()
     comments = post.comments.all()
     context = {
         'post': post,
@@ -138,10 +138,8 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
-    if (author != request.user and not
-        Follow.objects.filter(user=request.user,
-                              author=author).exists()):
-        Follow.objects.create(
+    if author != request.user:
+        Follow.objects.get_or_create(
             user=request.user,
             author=author,
         )
